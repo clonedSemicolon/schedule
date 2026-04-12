@@ -1,0 +1,50 @@
+# ===================================================================
+# DynaPyt CallGraph — schedule
+#
+# Add this to your fork of dbader/schedule:
+#   .github/workflows/dynapyt-callgraph.yml
+#
+# Triggers: manual (workflow_dispatch)
+# Artifacts: dynapyt.json (call graph)
+# ===================================================================
+
+name: DynaPyt CallGraph
+
+on:
+  workflow_dispatch:
+
+jobs:
+  callgraph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      # ── Project setup ────────────────────────────────────────
+      - name: Install dev dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      # ── DynaPyt ──────────────────────────────────────────────
+      #    With editable install (-e .), the schedule/ directory
+      #    in the repo IS the installed package — instrument it
+      #    directly so imports load instrumented code.
+      - uses: clonedSemicolon/seytup-dynapyt@master
+        with:
+          directory: schedule/
+
+      - name: Run tests
+        run: pytest test_schedule.py -v
+
+      - name: Upload DynaPyt Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynapyt-schedule
+          path: dynapyt.json
+          retention-days: 30
